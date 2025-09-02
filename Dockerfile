@@ -1,24 +1,26 @@
-FROM kbase/kbase:sdkbase2.latest
+FROM kbase/sdkpython:3.8.0
 MAINTAINER KBase Developer
 
-# Here we install a python coverage tool
-RUN pip install coverage
+# Upgrade pip tooling & keep coverage
+RUN python3 -m pip install -U pip setuptools wheel && \
+    python3 -m pip install coverage
 
-# NEW LINES for xopen issue within cutadapt installation (current version xopen not backwards compatible)
-# NOTE this may need to be updated as well in the future as newer cutadapt versions are used.
-RUN pip install xopen==0.3.2
+# System packages: pigz for fast multi-core gzip
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      pigz ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
-# install cutadapt
-RUN pip install cutadapt==1.18
+# Cutadapt 4.9 (wheels available on PyPI)
+RUN python3 -m pip install --no-cache-dir "cutadapt==4.9" && \
+    cutadapt --version
 
 COPY ./ /kb/module
 RUN mkdir -p /kb/module/work
 RUN chmod 777 /kb/module
 
 WORKDIR /kb/module
-
 RUN make all
 
 ENTRYPOINT [ "./scripts/entrypoint.sh" ]
-
 CMD [ ]
+
